@@ -2,10 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ShortMyLink | Premium URL Shortener</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
+        /* --- COPY YOUR CSS STYLES HERE (Kept same as before) --- */
         :root {
             --bg-body: #e8e1ef;
             --card-bg: rgba(255, 255, 255, 0.5);
@@ -30,22 +31,25 @@
 
         body {
             font-family: 'Outfit', sans-serif;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             background-color: var(--bg-body);
-            overflow: hidden;
+            background-attachment: fixed;
+            overflow-x: hidden;
+            position: relative;
+            padding: 20px;
         }
 
-        /* --- Ambient Background Orbs --- */
         .orb {
-            position: absolute;
+            position: fixed;
             border-radius: 50%;
             filter: blur(100px);
             z-index: -1;
             animation: move 25s infinite alternate ease-in-out;
             opacity: 0.5;
+            pointer-events: none;
         }
         .orb-1 { width: 450px; height: 450px; background: var(--accent); top: -5%; left: -5%; }
         .orb-2 { width: 550px; height: 550px; background: #60a5fa; bottom: -5%; right: -5%; }
@@ -55,7 +59,6 @@
             to { transform: translate(80px, 80px); }
         }
 
-        /* --- Stable Glass Card --- */
         .container {
             background: var(--card-bg);
             backdrop-filter: blur(30px);
@@ -63,15 +66,15 @@
             border: 1px solid var(--card-border);
             border-radius: 40px;
             padding: 3.5rem 2.5rem;
-            width: 90%;
+            width: 100%;
             max-width: 440px;
             box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.1);
             text-align: center;
             z-index: 10;
-            /* Hover removed - no transform here */
+            margin: auto;
         }
 
-        h1 { color: var(--text-main); font-size: 2.2rem; margin-bottom: 0.5rem; letter-spacing: -1px; }
+        h1 { color: var(--text-main); font-size: 2.2rem; margin-bottom: 0.5rem; letter-spacing: -1px; word-wrap: break-word; }
         .subtitle { color: var(--text-dim); margin-bottom: 2rem; font-size: 0.95rem; }
 
         .input-group { display: flex; flex-direction: column; gap: 15px; }
@@ -97,24 +100,19 @@
             background-color: var(--text-main); color: var(--bg-body);
             font-size: 1.1rem; font-weight: 600; cursor: pointer;
             transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
         }
         [data-theme="dark"] .main-btn { background: var(--accent); color: #000; }
         .main-btn:active { transform: scale(0.97); }
 
-        /* --- Ultra Smooth Result Reveal --- */
         #resultContainer {
             margin-top: 0;
             max-height: 0;
             overflow: hidden;
             opacity: 0;
-            filter: blur(10px); /* Starts blurry for smoothness */
+            filter: blur(10px);
             transform: translateY(20px);
-            transition:
-                    max-height 1.4s cubic-bezier(0.19, 1, 0.22, 1),
-                    opacity 1.2s ease,
-                    filter 1.2s ease,
-                    transform 1.4s cubic-bezier(0.19, 1, 0.22, 1),
-                    margin-top 1s ease;
+            transition: all 1.2s ease;
         }
 
         #resultContainer.show {
@@ -130,6 +128,7 @@
             border: 1px dashed var(--accent);
             padding: 25px; border-radius: 25px;
             display: flex; flex-direction: column; gap: 10px;
+            word-break: break-all;
         }
 
         #shortUrlLink {
@@ -142,13 +141,10 @@
             transition: letter-spacing 0.8s ease;
         }
 
-        #resultContainer.show #shortUrlLink {
-            letter-spacing: 0px; /* Text "settles" into place */
-        }
+        #resultContainer.show #shortUrlLink { letter-spacing: 0px; }
 
-        /* --- Theme Switcher --- */
         .theme-switch-wrapper { position: absolute; top: 30px; right: 30px; z-index: 100; }
-        .theme-switch { display: inline-block; height: 34px; width: 60px; position: relative; cursor: pointer; }
+        .theme-switch { display: inline-block; height: 34px; width: 60px; position: relative; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .theme-switch input { display: none; }
         .slider {
             background-color: rgba(0,0,0,0.1); bottom: 0; left: 0; position: absolute; right: 0; top: 0;
@@ -162,11 +158,16 @@
         input:checked + .slider:before { transform: translateX(26px); }
 
         .status-text {
-            margin-top: 15px;
-            font-size: 0.85rem;
-            color: var(--text-dim);
-            height: 1rem;
-            transition: opacity 0.5s ease;
+            margin-top: 15px; font-size: 0.85rem; color: var(--text-dim); height: 1rem; transition: opacity 0.5s ease;
+        }
+
+        @media screen and (max-width: 480px) {
+            .container { padding: 2.5rem 1.5rem; border-radius: 30px; }
+            h1 { font-size: 1.8rem; }
+            .theme-switch-wrapper { top: 20px; right: 20px; }
+            input[type="text"] { padding: 16px; font-size: 16px; }
+            .main-btn { padding: 16px; }
+            .orb { opacity: 0.4; }
         }
     </style>
 </head>
@@ -223,31 +224,45 @@
         // Reset UI for new request
         result.classList.remove('show');
         status.style.opacity = "1";
-        status.textContent = "Polishing your link...";
+        status.textContent = "Processing...";
 
         try {
-            const response = await fetch('/getUrl/shorten', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: input })
+            // FIX 1: Using the full URL including http://localhost:8080
+            // FIX 2: Correct endpoint path /getUrl/shorten
+            const response = await fetch("http://localhost:8080/getUrl/shorten", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    url: input // FIX 3: Changed 'originalUrl' to 'url' to match your DTO
+                })
             });
 
-            if(!response.ok) throw new Error();
+            if (!response.ok) {
+                // This logs the actual server error (like 400 Bad Request)
+                console.error("Server Error:", response.status, response.statusText);
+                throw new Error("Server responded with error");
+            }
 
             const data = await response.json();
 
-            // Set data
-            link.textContent = data.shortUrl;
-            link.href = data.shortUrl;
+            // FIX 4: Ensure we are reading the right key from your ShortenUrlResponse
+            const shortUrl = data.shortUrl;
 
-            // Smooth delay to let the user see the status before the reveal
+            // Set data
+            link.textContent = shortUrl;
+            link.href = shortUrl;
+
+            // Smooth reveal
             setTimeout(() => {
                 status.style.opacity = "0";
                 result.classList.add('show');
             }, 600);
 
-        } catch (e) {
-            status.textContent = "Could not shorten. Check your link.";
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Connection failed. Is Spring Boot running?";
             status.style.color = "#ef4444";
         }
     }
